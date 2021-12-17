@@ -1,0 +1,1 @@
+change your password <a href="http://localhost:8000/reset/<?php echo e($token); ?>">click here</a><?php /**PATH /home/user/NewApi/resources/views/forgetmail.blade.php ENDPATH**/ ?>
