@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\User;
+use App\Otp;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Auth;
@@ -18,7 +19,7 @@ class AuthController extends Controller
 
         $rules = [
             'name' => 'required|regex:/(^([a-zA-z]+)(\d+)?$)/u',
-            'phone' => 'required_with:email|min:11|numeric',
+            'phone' => 'required|min:11|numeric',
             'phone' => 'max:15|unique:users,phone',
             "email"=>'required|max:32|email|unique:users,email',
             'password' => 'required|string|min:4|confirmed'
@@ -26,7 +27,7 @@ class AuthController extends Controller
         $validator = Validator::make($request->all(),$rules);
 
         if($validator->fails()){
-            return response()->json($validator->errors(),400); // 400 = Bad Request
+            return response()->json($validator->errors()->first(),400); // 400 = Bad Request
         }
 
         $user = new User([
@@ -157,14 +158,15 @@ class AuthController extends Controller
         //     'alert-type' => 'success'
         // );
            
-        Mail::send('forgetmail', ['token' => $token] ,function($message) use ($email){
+        Mail::send('forgetmail', ['token' => $token,'email'=>$email] ,function($message) use ($email){
                 $message->to($email);
-                $message->subject('Reset your password');
+                $message->subject('Reset your password | Link');
 
             });
 
             return response([
                 'message' => 'Reset link sent Successfully!',
+                'token' => $token,
             ],200);
 
 
@@ -218,7 +220,113 @@ class AuthController extends Controller
                 
             }
 
+   public function changePassword(Request $request){
+
+                $validator = Validator::make($request->all(), [ 
+                    'old_password' => 'required', 
+                    'password' => 'required', 
+                    'confirm_password' => 'required|same:password', 
+                  ]);
+            
+                if ($validator->fails()) { 
+                     return response()->json(['message'=>$validator->errors()->first(),'status'=>400],400);  
+                }
+      
+                $old_password = $request->get('old_password');
+                $newPassword = $request->get('password');
+                $confirm_password = $request->get('confirm_password');
+      
+                //$user=Auth::guard('api');
+
+                $user= $request->user();
+
+                //return response()->json($request->user());
+      
+              if ($user){
+                  if (Hash::check($old_password, $user->password)) { 
+      
+                      $passwordUpdate =User::where('id',$user->id)->update(['password'=>Hash::make($newPassword)]) ;
+                      if ($passwordUpdate ) {
+      
+                        return response([
+                            'message ' => 'Password changed successfully.'
+                        ],200);
+                      
+                      } else {
+                        return response([
+                            'message ' => 'Password not changed.'
+                        ],404);
+                     
+                      }
+                  }	else {
+                      return response([
+                        'message ' => 'Old Password does not match.'
+                      ],404);
+                  }
+      
+              }  else {
+                    return response()->json(['message'=>'User does not authenticate','code'=>401],401);
+              }
+     }
+
+
+
+     public function forgotpassword(Request $request){
+
+        $validator = Validator::make($request->all(), [
+          'email' => 'required',  
+        ]);
+  
+        if($validator->fails()){
+             return response()->json(['message'=>$validator->errors()->first(),'status'=>400],400);  
+               }
+          $email = $request->get('email');
+          $users_data =User::where('email',$email)->first();
+          if(!empty($users_data))
+          {
+          
+              $data['otp'] = rand(1000, 9999);
+              $otp=new Otp();
+              $otp->otp= $data['otp'];
+              $otp->user_id=$users_data->id;
+              $otp->active=0;
+                    $result['user_id']=$users_data->id;
+                    $result['email']=$users_data->email;
+                    $result['otp']=$data['otp'];
+                    $response=$result;
+              $data=['name'=>$users_data->name,'email'=>$users_data->email,'otp'=>$otp->otp];
+             $view =  'forgot_password_otp';
+              $subject = 'Reset Password';
+           
+               Mail::send($view, $data, function ($m) use ($data,$subject) {
+                $m->from('sonu.sah@quytech.com', 'Team');
+    
+                $m->to($data['email'])->subject($subject.' | VerifyOTP');
+            });
+  
+  
+            if($otp->save())
+            {
+              
+              return response([ 'message ' => 'An otp has been sent on your registered email .', ],200);
+            }
+            else
+            {
+              return response([ 'message ' => 'Something went wrong',],404);
+            }
+          }
+          else
+          {
+            return response([ 'message ' => 'User does not exists',],404);
+          }
+      
+      }
+
+
+
 }
+
+
 
 
 
