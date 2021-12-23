@@ -1,5 +1,3 @@
-
-
 <?php
 /**
  * Views File Doc Comment
@@ -26,14 +24,7 @@
                <td align="center">
                   <div>
                      <h1 style="font-family: Comic Sans MS;color: #206dac; margin-top: 0">Hello {{ $email }}</h1>
-                     <tr>
-                     <td align="center" style="color:#555;font-size:16px;line-height:25px; font-family: Comic Sans MS">
-                  <p style="font-size:16px; padding: 0 15px; margin: 0">Change your password. <a href="http://localhost:8000/reset/{{$token}}">click here</a></p>
-                  </td>
-                </tr>
-                   
-                     
-                      
+										 <h2>Otp {{$otp}}</h2>
                   </div>
                </td>
             </tr>
